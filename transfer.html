@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+	<head>
+		<link rel="shortcut icon" type="image/png" href="images/favicon.ico"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" type="text/css" href="style.css" />
+		<link href="./libraries/bootstrap-3.2.0-dist/css/bootstrap.min.css"	rel="stylesheet" />
+		<link href="./libraries/bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" rel="stylesheet" />
+		<script type="text/javascript" src="https://www.dropbox.com/static/api/1/dropins.js" id="dropboxjs"	data-app-key="exllimu1csyeywc"></script>
+		<script src="http://code.jquery.com/jquery-1.9.1.js" type="text/javascript"></script>
+		
+		<link href='http://fonts.googleapis.com/css?family=Ubuntu' rel='stylesheet' type='text/css'>
+		<title>TransferBox</title>
+		<link rel="stylesheet" type="text/css" href="style.css" />
+		<script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+		<script src="https://apis.google.cdom/js/plusone.js"></script>
+		<script src="https://apis.google.com/js/platform.js">
+			{parsetags: 'explicit'}
+		</script>
+		<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+ 		<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+  		<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+  		<script>
+  			$(function() {
+    			/* $( "#chooseFromDriveButton" ).button({
+      				icons: {
+        				primary: "ui-icon-locked"
+      				}
+    			}); */
+  			});
+ 		</script>
+		<script type="text/javascript">
+			function fail(){
+				alert('Dropbox API failed to download');
+			}
+			// The API developer key obtained from the Google Cloud Console.
+			var developerKey = 'AIzaSyCUbww1fVp7-vc8krwfVV8wo1XvYnrATuo';
+			// The Client ID obtained from the Google Developers Console.
+		      var clientId = '323046794136-h1ee0d263tnd5q8balo8r2n62sd7ngmc.apps.googleusercontent.com';
+			// Use the API Loader script to load google.picker.
+			function loadPicker() {
+				$('#clearDriveFiles').hide();
+				$('#seperator').hide();
+				document.getElementById('driveFiles').innerHTML="";
+				// Use the API Loader script to load the Authentication script.
+		        gapi.load('auth', {'callback': onAuthApiLoad});
+
+		        // Use the API Loader script to load the google.picker script.
+		        gapi.load('picker', {'callback': onPickerApiLoad});
+				/* gapi.load('picker', {'callback': createPicker}); -- version 1.0*/
+			}
+			 // Scope to use to access user's photos.
+		      var scope = ['https://www.googleapis.com/auth/docs'];
+
+		      var pickerApiLoaded = false;
+		      var oauthToken;
+			function onPickerApiLoad() {
+		        pickerApiLoaded = true;
+		        //createPicker();
+		      }
+			function handleAuthResult(authResult) {
+		        if (authResult && !authResult.error) {
+		          oauthToken = authResult.access_token;
+		          createPicker();
+		        }
+		      }
+			function onAuthApiLoad() {
+		        window.gapi.auth.authorize(
+		            {
+		              'client_id': clientId,
+		              'scope': scope,
+		              'immediate': false
+		            },
+		            handleAuthResult);
+		      }
+			// Create and render a Picker object for searching images.
+			function createPicker() {
+				/* var picker = new google.picker.PickerBuilder().
+				addView(google.picker.ViewId.DOCS).
+				enableFeature(google.picker.Feature.MULTISELECT_ENABLED).
+				setDeveloperKey(developerKey).
+				setCallback(pickerCallback).
+				build();
+				picker.setVisible(true); -- version 1.0*/
+				
+				var picker = new google.picker.PickerBuilder().
+	            addView(google.picker.ViewId.DOCS).
+	            enableFeature(google.picker.Feature.MULTISELECT_ENABLED).
+	            setOAuthToken(oauthToken).
+	            setDeveloperKey(developerKey).
+	            setCallback(pickerCallback).
+	            build();
+	        	picker.setVisible(true);
+			}
+			// A simple callback implementation.
+			function pickerCallback(data){
+				
+				try{
+					//var url = 'nothing';
+					if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
+						//var fileCountText = document.createTextNode(""+docs.docs.length);
+						//document.getElementById('fileCountPara').appendChild(fileCountText);
+						var count = data.docs.length;
+						var i = 0;
+						if(count!=0){
+							$('#seperator').show();
+							$('#clearDriveFiles').show();
+						}
+						while(i<count){
+							var driveFile = document.createElement('div');
+							driveFile.id = 'driveFile'+i;
+							driveFile.className = 'driveFile';
+							document.getElementById('driveFiles').appendChild(driveFile);
+							driveFile.innerHTML = "<img src='images/load.gif' ></img><span>Fetching File "+(i+1)+" Data</span><hr>";
+							i++;
+						}
+						i = 0;
+						while(i < count){
+							getDocument(i);
+							i++;
+						}
+						function getDocument(i){
+							var doc = data[google.picker.Response.DOCUMENTS][i];
+							//var fileId = data.docs[i].id;
+							//var fileId = doc.item_id;
+							url = doc[google.picker.Document.URL];
+							fileId = doc[google.picker.Document.ID];
+							var accessToken = gapi.auth.getToken().access_token;
+							var xhr = new XMLHttpRequest();
+							//xhr.open('GET', "https://www.googleapis.com/drive/v1/files/"+fileId+"?key="+developerKey);
+							xhr.open('GET', "https://www.googleapis.com/drive/v2/files/"+fileId+"?key="+developerKey);
+							xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);							
+							try{
+								xhr.send(null);
+							}catch(error){
+								document.getElementById('driveFile'+i).innerHTML = "Connection failed.<hr>";
+								getDocument(i);
+							}
+							xhr.onreadystatechange = function(){
+								if(xhr.readyState == 0){
+									document.getElementById('driveFile'+i).innerHTML = "Request not Initialized.<hr>";
+								}
+								else if(xhr.readyState == 1){
+									document.getElementById('driveFile'+i).innerHTML = "Server Connection Established.<hr>";
+								}
+								else if(xhr.readyState == 2){
+									document.getElementById('driveFile'+i).innerHTML = "Request Recieved.<hr>";
+								}
+								else if(xhr.readyState == 3){
+									document.getElementById('driveFile'+i).innerHTML = "Processing Request.<hr>";
+								}
+		      					else if(xhr.readyState == 4 && xhr.status == 200){
+		      						var driveFiles = JSON.parse(xhr.responseText);
+		      							
+									var parentDiv = document.getElementById('driveFile'+i);
+									parentDiv.innerHTML = "";
+										
+									var fileData = document.createElement('div');
+										fileData.id = "file_"+i+"_data";
+										fileData.className = "driveFileData";
+
+										var fileIcon = document.createElement('div');
+											fileIcon.id = "driveFile_"+i+"_icon";
+											fileIcon.className = 'driveFileIcon';
+										var driveFileNameContainer = document.createElement('div');
+											driveFileNameContainer.id = "fileName_i_container";
+											driveFileNameContainer.className = 'driveFileNameContainer';
+												var fileName = document.createElement('h6');
+												fileName.id = 'driveFile_'+i+'_name';
+												fileName.className = 'driveFileName';
+
+									var controls = document.createElement('div');
+										controls.id = "controls_for_file_"+i;
+										controls.className = "driveFileControl";
+
+										var savebutton = document.createElement('div');
+											savebutton.id = "saveFile_"+i+"_to_Dropboxbutton";
+											savebutton.className = 'saverDiv';
+
+											var buttonParent = document.createElement('div');
+
+									fileIcon.innerHTML = "<img src='"+driveFiles.iconLink+"' />";
+
+									var index = driveFiles.title.lastIndexOf('.');
+									var fileNameString = driveFiles.title.substring(0,index);
+									if(fileNameString.length>23){
+										fileNameString = driveFiles.title.substring(0,10)+"..."+driveFiles.title.substring(index-5,index)+"."+driveFiles.fileExtension;
+									}
+									else{
+										fileNameString = driveFiles.title;
+									}
+									buttonParent.title = driveFiles.title;
+									fileName.appendChild(document.createTextNode(fileNameString));
+
+									driveFileNameContainer.appendChild(fileName);
+
+									if(driveFiles.webContentLink){
+										//alert(driveFiles.webContentLink);
+										var saver = Dropbox.createSaveButton(driveFiles.webContentLink, driveFiles.title);
+										buttonParent.appendChild(saver);
+										savebutton.appendChild(buttonParent);
+										controls.appendChild(savebutton);
+										parentDiv.appendChild(controls);
+									}
+									else{
+										var shareButton = document.createElement('button');
+										shareButton.className = "share_button";
+										shareButton.appendChild(document.createTextNode("Share"));
+										controls.appendChild(shareButton);
+										parentDiv.appendChild(controls);
+										$('.share_button').button({
+      										icons: {
+        										primary: "ui-icon-locked"
+      										}
+    									});
+    									$('.share_button').click(function(){
+    										window.open(url,'_blank','resizable');
+    									});
+    									
+									}
+									fileData.appendChild(fileIcon);
+									fileData.appendChild(driveFileNameContainer);
+									
+									parentDiv.appendChild(fileData);							
+									parentDiv.appendChild(document.createElement('hr'));						
+									
+								}
+								else if(xhr.readyState == 4 && xhr.status == 404){
+									var name = doc[google.picker.Document.NAME];
+									var ind = name.lastIndexOf('.');
+									var ext = name.substring(ind);
+									if(name.length>23){
+										name = name.substring(0,10)+"..."+name.substring(ind-5,ind)+ext;
+									}
+									document.getElementById('driveFile'+i).innerHTML = "<h6 class='driveFileName'>"+name+"</h6> is not <a title='"+doc[google.picker.Document.NAME]+"' target='_blank' href='"+url+"'>share</a>d.<hr>";	
+								}
+    						};
+						}
+					}
+					else if(data[google.picker.Response.ACTION] == google.picker.Action.CANCEL){
+						//document.getElementById('driveFiles').innerHTML = "No files selected";
+					}				
+				}catch(Exception){}
+			}
+			function createElements(count){
+				
+			}
+		</script>
+		<!-- The Google API Loader script. -->
+	</head>
+	<body style='font-family: Ubuntu,Arial,"libra sans",sans-serif;'>
+		<nav class="navbar navbar-default" role="navigation">
+			<div class="container">
+				<!-- Brand and toggle get grouped for better mobile display -->
+				<div class="navbar-header">
+					<!-- <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button> -->
+					<a class="navbar-brand" href="/">TransferBox</a>
+				</div>
+			</div>
+		</nav>
+		<div class="container">
+			<div class="container col-sm-6">
+				<div class="panel panel-default">
+					<div class="panel-heading"><button id="chooseFromDropBoxButton" class="btn btn-default" >Choose from Dropbox</button></div>
+  					<div class="panel-body"><div id='dropboxFiles'></div></div>
+  					<div class="panel-footer"><button id='clearDropboxFiles'>Clear</button></div>
+				</div>
+			</div>
+			<div class="container col-sm-6">
+				<div class="panel panel-default">
+					<div class="panel-heading"><button id='chooseFromDriveButton' class="btn btn-default" onclick='loadPicker()'>Choose from Drive</button></div>
+					<div class="panel-body"><div id='driveFiles'></div></div>
+					<div class="panel-footer"><button id='clearDriveFiles'>Clear</button></div>
+				</div>
+			</div>
+		</div>
+		<!-- <div class='container'>
+			<div id='main'>
+				<div id='left' style='width:50%;float:left;'>
+				<div class="col-sm-6 col-md-6" style="text-align: center;">
+					<div id='dropboxControls' style='float:left;margin-top:50px;'>
+					<div id='dropboxControls'>
+						<button id="chooseFromDropBoxButton" class="btn btn-default" >Choose from Dropbox</button>
+						<div id='dropboxFiles'></div>
+						<div id='dropControls'>
+							<button id='clearDropboxFiles'>Clear</button>
+							-->
+							<div id="dialog-confirm" title="Empty the Dropbox files list?">
+								<!-- <p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span></p> -->
+							</div>
+							<!-- 
+						</div>
+					</div>
+				</div>
+				<div id='right' style='width:50%;float:right;'>
+				<div class='col-sm-6 col-md-6' style="text-align: center;">
+					<div id='googleDriveControls' style='float:right;margin-top:50px;'>
+					<div id='googleDriveControls'>
+						<button id='chooseFromDriveButton' class="btn btn-default" onclick='loadPicker()'>Choose from Drive</button>
+						<hr id='seperator' >
+						<div id='gdContents'>
+							<p id='fileCountPara'></p>
+							<div id='driveFiles'></div>
+							<div id='singleDropboxSaver'></div>
+							<div id='driveFilesControls'>
+								<button id='clearDriveFiles'>Clear</button>-->
+								<div id="dialog-confirm-drive" title="Empty the Google Drive files list?">
+									<!-- <p><span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span></p> -->
+								</div>
+								<!-- 
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div> -->
+		<div class='spacer1 bottom'></div>
+		<div class="spacer2 bottom">
+			<div style='float:left;width:90%;'></div>
+			<div style='float:right;width:10%;'>
+				<div class='subSpacer2 thirdSpacer'></div><div class='subSpacer2 secondSpacer'></div><div class='subSpacer2 firstSpacer'></div>
+			</div>
+		</div>
+		
+		<div id='footer' style='text-align:center;height:30px;margin: 0;clear: both;width:100%;position: relative;'>
+			<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/2.5/in/deed.en_US"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-nd/2.5/in/80x15.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/InteractiveResource" property="dct:title" rel="dct:type">TransferBox</span><span xmlns:cc="http://creativecommons.org/ns#" property="cc:attributionName"></span> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/2.5/in/deed.en_US">Creative Commons Attribution-NonCommercial-NoDerivs 2.5 India License</a>.	
+		</div>
+		<script type="text/javascript">
+			var options = {
+
+				    // Required. Called when a user selects an item in the Chooser.
+				    success: function(fileList) {
+				    	if(fileList.length!=0){
+							$('#clearDropboxFiles').show();
+							$('#clearDropboxFiles').button("enable");
+							var i = 0;
+							var list = document.createElement('ul');
+							list.className="list-group";
+							document.getElementById('dropboxFiles').appendChild(list);
+							while(i<fileList.length){
+								var listItem = document.createElement('li');
+								listItem.id = 'file'+i;
+								listItem.className = "list-group-item";
+								//if(i == 0){ listItem.className = 'first'; }
+								//else if(i==(files.length-1)){ listItem.className='last'; }
+								var icon = document.createElement('img');
+								listItem.appendChild(icon);
+								icon.className = 'left';
+								icon.width='16';
+								icon.height = '16';
+								icon.src =   fileList[i].icon;
+								var filePara = document.createElement('span');
+								filePara.className = 'icon';
+								var fileParaData = document.createTextNode(fileList[i].name);
+								filePara.appendChild(fileParaData);
+								var buttonDiv = document.createElement('div');
+								buttonDiv.id = 'button'+i;
+								listItem.appendChild(buttonDiv);							
+								list.appendChild(listItem);
+								listItem.appendChild(filePara);
+								gapi.savetodrive.render(buttonDiv.id, {
+	       		  						src: fileList[i].link,
+	       		  						filename: fileList[i].name,
+	       		  						sitename: 'Transferbox.in'
+	       						});
+								/* var hr = document.createElement('hr');
+								listItem.appendChild(hr); */
+								i++;
+							}
+						}
+				    },
+
+				    // Optional. Called when the user closes the dialog without selecting a file
+				    // and does not include any parameters.
+				    cancel: function() {
+
+				    },
+
+				    // Optional. "preview" (default) is a preview link to the document for sharing,
+				    // "direct" is an expiring link to download the contents of the file. For more
+				    // information about link types, see Link types below.
+				    linkType: "direct", // or "direct"
+
+				    // Optional. A value of false (default) limits selection to a single file, while
+				    // true enables multiple file selection.
+				    multiselect: true, // or true
+
+				    // Optional. This is a list of file extensions. If specified, the user will
+				    // only be able to select files with these extensions. You may also specify
+				    // file types, such as "video" or "images" in the list. For more information,
+				    // see File types below. By default, all extensions are allowed.
+				    extensions: ['.*'],
+				};
+			
+		</script>
+		<script>
+			$('#dialog-confirm').hide();
+			$('#clearDropboxFiles').click(function(){
+    			$( "#dialog-confirm" ).dialog({
+      				resizable: false,
+      				height:140,
+      				width:400,
+      				modal: true,
+      				buttons: {
+        				"Clear items in the list": function() {
+        					$('#dropboxFiles').empty();
+        					$('#clearDropboxFiles').hide();
+          					$( this ).dialog( "close" );
+        				},
+        				Cancel: function() {
+          					$( this ).dialog( "close" );
+        				}
+      				}
+    			});
+  			});
+  		</script>
+		<script type="text/javascript">
+			$('#clearDropboxFiles').button();
+			$('#clearDropboxFiles').hide();
+		</script>
+		<script type="text/javascript">
+			$('#seperator').hide();
+			$('#clearDriveFiles').button();
+			$('#clearDriveFiles').hide();
+		</script>
+		<script>
+			$('#dialog-confirm-drive').hide();
+			$('#clearDriveFiles').click(function(){
+				$( "#dialog-confirm-drive" ).dialog({
+					resizable: false,
+					height:140,
+					width:400,
+					modal: true,
+					buttons:
+					{
+						"Clear items in the list": function() {
+							$('#driveFiles').empty();
+							$('#clearDriveFiles').hide();
+  							$('#seperator').hide();
+   							$( this ).dialog( "close" );
+  						},
+  						Cancel: function() {
+    						$( this ).dialog( "close" );
+  						}
+					}
+				});
+			});
+		</script>
+		<script type="text/javascript">
+			$('#singleDropboxSaver').hide();
+		</script>
+		<script type="text/javascript">
+			$("#chooseFromDropBoxButton").click(function(){
+				//alert("From dropbox");
+			});
+			if(Dropbox.isBrowserSupported()){
+				// add an event listener to a Chooser button
+				/* document.getElementById("db-chooser").addEventListener("DbxChooserSuccess",
+				function(e) {
+					//alert("Here's the chosen file: " + e.files[0].link);
+					//var filename = e.files[0].link.substring(e.files[0].link.lastIndexOf("/"));
+					if(e.files.length!=0){
+						$('#clearDropboxFiles').show();
+						$('#clearDropboxFiles').button("enable");
+						var i = 0;
+						var list = document.createElement('ul');
+						list.className='imageList';
+						document.getElementById('dropboxFiles').appendChild(list);
+						while(i<e.files.length){
+							var listItem = document.createElement('li');
+							listItem.id = 'file'+i;
+							if(i == 0){ listItem.className = 'first'; }
+							else if(i==(e.files.length-1)){ listItem.className='last'; }
+							var icon = document.createElement('img');
+							listItem.appendChild(icon);
+							icon.className = 'left';
+							icon.width='64';
+							icon.height = '64';
+							icon.src =   e.files[i].icon;
+							var filePara = document.createElement('span');
+							filePara.className = 'icon';
+							var fileParaData = document.createTextNode(e.files[i].name);
+							filePara.appendChild(fileParaData);
+							var buttonDiv = document.createElement('div');
+							buttonDiv.id = 'button'+i;
+							listItem.appendChild(buttonDiv);							
+							list.appendChild(listItem);
+							listItem.appendChild(filePara);
+							gapi.savetodrive.render(buttonDiv.id, {
+       		  						src: e.files[i].link,
+       		  						filename: e.files[i].name,
+       		  						sitename: 'My Company Name'
+       						});
+							var hr = document.createElement('hr');
+							listItem.appendChild(hr);
+							i++;
+						}
+					}
+				}, false); */
+			}
+			else{
+				document.getElementById('dropboxFiles').innerHTML = "<p>Browser Not Supported</p>";
+			}
+			$("#chooseFromDropBoxButton").click(function(){
+				Dropbox.choose(options);
+			});
+		</script>
+		<script type="text/javascript" src="./libraries/bootstrap-3.2.0-dist/js/bootstrap.min.js" link="relative"></script>
+	</body>
+</html>
